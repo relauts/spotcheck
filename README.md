@@ -2,19 +2,34 @@
 
 Spotcheck lets people with no coding skills build and run Playwright browser tests by typing what they want in plain English. Gemini is currently supported, so you can start testing with a free API key.
 
+<table border="1" width="100%">
+  <tr>
+    <th><strong>Create tab</strong></th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/create-tab.png" alt="Create tab" />
+      <p>Create a workflow on the right. Watch the live browser on the left.</p>
+    </td>
+  </tr>
+</table>
 
-| **Create tab**                                                      |
-| ------------------------------------------------------------------- |
-| Create a workflow on the right. Watch the live browser on the left. |
-
-
-
-| **Saved tab**                                                                                             | **History tab**                        |
-| --------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Run a saved workflow. Each one runs in its own browser session. You can open and watch them on their own. | Results and screenshots of saved runs. |
-
-
-
+<table border="1" width="100%">
+  <tr>
+    <th width="50%"><strong>Saved tab</strong></th>
+    <th width="50%"><strong>History tab</strong></th>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/screenshots/saved-tab.png" alt="Saved tab" />
+      <p>Run a saved workflow. Each one runs in its own browser session. You can open and watch them on their own.</p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/screenshots/history-tab.png" alt="History tab" />
+      <p>Results and screenshots of saved runs.</p>
+    </td>
+  </tr>
+</table>
 
 ## Quick start
 
