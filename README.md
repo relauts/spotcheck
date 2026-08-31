@@ -55,5 +55,3 @@ Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
 See `LICENSE` and `NOTICE`.
-
-The names Relauts and Spotcheck are trademarks of Relauts Pvt. Ltd.
