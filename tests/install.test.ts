@@ -9,6 +9,7 @@ import { extractNpmTarball } from "../src/extract.js";
 import {
   copyConfigIfMissing,
   copyTemplateConfigs,
+  isUuid,
   npmFileArgs,
   packageNeedsInstall,
   readPackageJson,
@@ -134,7 +135,7 @@ describe("copyTemplateConfigs", () => {
     assert.equal(ui.uiPort, 18733);
     assert.ok(service.apiToken && service.apiToken.length >= 16);
     assert.equal(service.apiToken, ui.apiToken);
-    assert.ok(service.installationId && service.installationId.length >= 16);
+    assert.ok(service.installationId && isUuid(service.installationId));
     assert.notEqual(service.installationId, service.apiToken);
     assert.equal(ui.installationId, undefined);
   });
@@ -151,10 +152,25 @@ describe("copyTemplateConfigs", () => {
     };
     assert.equal(ui.apiToken, "keep-me");
     assert.equal(service.apiToken, "keep-me");
-    assert.ok(service.installationId && service.installationId.length >= 16);
+    assert.ok(service.installationId && isUuid(service.installationId));
   });
 
-  it("keeps an existing installationId", async () => {
+  it("keeps an existing UUID installationId", async () => {
+    const cwd = tmpDir();
+    const layout = layoutFor(cwd);
+    const existingId = "550e8400-e29b-41d4-a716-446655440000";
+    fs.writeFileSync(
+      layout.serviceConfig,
+      JSON.stringify({ port: 18732, apiToken: "keep-me", installationId: existingId }),
+    );
+    await copyTemplateConfigs(layout);
+    const service = JSON.parse(fs.readFileSync(layout.serviceConfig, "utf8")) as {
+      installationId?: string;
+    };
+    assert.equal(service.installationId, existingId);
+  });
+
+  it("replaces a non-UUID installationId with a UUID", async () => {
     const cwd = tmpDir();
     const layout = layoutFor(cwd);
     fs.writeFileSync(
@@ -165,7 +181,8 @@ describe("copyTemplateConfigs", () => {
     const service = JSON.parse(fs.readFileSync(layout.serviceConfig, "utf8")) as {
       installationId?: string;
     };
-    assert.equal(service.installationId, "already-set");
+    assert.ok(service.installationId && isUuid(service.installationId));
+    assert.notEqual(service.installationId, "already-set");
   });
 });
 

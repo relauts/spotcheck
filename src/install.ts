@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -61,12 +61,18 @@ export async function readPackageJson(dir: string): Promise<PackageJsonFields | 
   }
 }
 
-function createRandomId(): string {
-  return randomBytes(24).toString("base64url");
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
 }
 
 export function createApiToken(): string {
-  return createRandomId();
+  return randomBytes(24).toString("base64url");
+}
+
+export function createInstallationId(): string {
+  return randomUUID();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -121,13 +127,18 @@ async function writeConfigWithToken(
   await writeJsonObject(to, parsed);
 }
 
+async function readInstallationId(filePath: string): Promise<string | undefined> {
+  const value = await readNonEmptyString(filePath, "installationId");
+  return value && isUuid(value) ? value : undefined;
+}
+
 async function ensureInstallationId(filePath: string, installationId: string): Promise<void> {
   try {
     const parsed: unknown = JSON.parse(await fs.readFile(filePath, "utf8"));
     if (!isRecord(parsed)) {
       return;
     }
-    if (typeof parsed.installationId === "string" && parsed.installationId.trim()) {
+    if (typeof parsed.installationId === "string" && isUuid(parsed.installationId.trim())) {
       return;
     }
     parsed.installationId = installationId;
@@ -231,8 +242,7 @@ export async function copyTemplateConfigs(layout: InstallLayout, fromUrl = impor
     (await readApiToken(layout.serviceConfig)) ??
     (await readApiToken(layout.uiConfig)) ??
     createApiToken();
-  const installationId =
-    (await readNonEmptyString(layout.serviceConfig, "installationId")) ?? createRandomId();
+  const installationId = (await readInstallationId(layout.serviceConfig)) ?? createInstallationId();
 
   if (!(await fileExists(layout.serviceConfig))) {
     await writeConfigWithToken(serviceTemplate, layout.serviceConfig, apiToken, installationId);
