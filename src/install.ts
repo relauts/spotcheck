@@ -110,12 +110,17 @@ export async function copyConfigIfMissing(from: string, to: string): Promise<boo
   return true;
 }
 
-function npmBin(): string {
-  return process.platform === "win32" ? "npm.cmd" : "npm";
+export function npmFileArgs(args: readonly string[]): { command: string; args: string[] } {
+  if (process.platform === "win32") {
+    const npmCli = path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+    return { command: process.execPath, args: [npmCli, ...args] };
+  }
+  return { command: "npm", args: [...args] };
 }
 
 async function npmPack(spec: string, destDir: string): Promise<string> {
-  const { stdout } = await execFileAsync(npmBin(), ["pack", spec, "--pack-destination", destDir], {
+  const npm = npmFileArgs(["pack", spec, "--pack-destination", destDir]);
+  const { stdout } = await execFileAsync(npm.command, npm.args, {
     encoding: "utf8",
     maxBuffer: 10 * 1024 * 1024,
   });
@@ -127,7 +132,8 @@ async function npmPack(spec: string, destDir: string): Promise<string> {
 }
 
 async function npmInstall(dir: string): Promise<void> {
-  await runQuiet(npmBin(), ["install", "--omit=dev"], dir);
+  const npm = npmFileArgs(["install", "--omit=dev"]);
+  await runQuiet(npm.command, npm.args, dir);
 }
 
 async function installPlaywrightChromium(serviceDir: string): Promise<void> {
@@ -160,7 +166,8 @@ async function installNpmPackage(spec: string, dest: string, withPlaywright: boo
 }
 
 async function npmLatestVersion(name: string): Promise<string> {
-  const { stdout } = await execFileAsync(npmBin(), ["view", name, "version"], {
+  const npm = npmFileArgs(["view", name, "version"]);
+  const { stdout } = await execFileAsync(npm.command, npm.args, {
     encoding: "utf8",
   });
   const version = stdout.trim();

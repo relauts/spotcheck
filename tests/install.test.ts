@@ -6,7 +6,13 @@ import zlib from "node:zlib";
 import { afterEach, describe, it } from "node:test";
 import { readServicePort, readUiPort } from "../src/config-files.js";
 import { extractNpmTarball } from "../src/extract.js";
-import { copyConfigIfMissing, copyTemplateConfigs, packageNeedsInstall, readPackageJson } from "../src/install.js";
+import {
+  copyConfigIfMissing,
+  copyTemplateConfigs,
+  npmFileArgs,
+  packageNeedsInstall,
+  readPackageJson,
+} from "../src/install.js";
 import {
   layoutFor,
   SERVICE_CONFIG_NAME,
@@ -80,6 +86,19 @@ describe("layoutFor", () => {
     assert.equal(layout.uiDir, path.join(cwd, UI_DIR_NAME));
     assert.equal(layout.serviceConfig, path.join(cwd, SERVICE_CONFIG_NAME));
     assert.equal(layout.uiConfig, path.join(cwd, UI_CONFIG_NAME));
+  });
+});
+
+describe("npmFileArgs", () => {
+  it("runs npm through node on Windows so npm.cmd is not spawned", () => {
+    const npm = npmFileArgs(["view", "pkg", "version"]);
+    if (process.platform === "win32") {
+      assert.equal(npm.command, process.execPath);
+      assert.equal(npm.args[0], path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js"));
+      assert.deepEqual(npm.args.slice(1), ["view", "pkg", "version"]);
+      return;
+    }
+    assert.deepEqual(npm, { command: "npm", args: ["view", "pkg", "version"] });
   });
 });
 

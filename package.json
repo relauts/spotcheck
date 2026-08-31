@@ -1,6 +1,6 @@
 {
   "name": "@relauts/spotcheck",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Spotcheck launcher — installs UI and service into the current folder and starts them",
   "license": "AGPL-3.0-or-later",
   "author": "Relauts Pvt. Ltd.",
@@ -23,6 +23,7 @@
   "files": [
     "files",
     "dist",
+    "docs",
     "LICENSE",
     "NOTICE"
   ],
