@@ -1,4 +1,4 @@
-# Spotcheck
+# Spotcheck (beta)
 
 Spotcheck lets people with no coding skills build and run Playwright browser tests by typing what they want in plain English. Gemini is currently supported, so you can start testing with a free API key.
 
