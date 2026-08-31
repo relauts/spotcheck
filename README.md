@@ -6,14 +6,30 @@ Spotcheck lets people with no coding skills build and run Playwright browser tes
 
 <table border="1" width="100%">
   <tr>
-    <th><strong>Create</strong></th>
-    <th><strong>Saved</strong></th>
-    <th><strong>History</strong></th>
+    <th><strong>Create tab</strong></th>
   </tr>
   <tr>
-    <td valign="top">Build a workflow on the right. Watch the live Chromium browser on the left.</td>
-    <td valign="top">Open saved workflows. Each one runs in its own browser session. You can watch them on their own.</td>
-    <td valign="top">Past run results and screenshots.</td>
+    <td align="center">
+      <img src="docs/screenshots/create-tab.png" alt="Create tab" />
+      <p>Create a workflow on the right. Watch the live browser on the left.</p>
+    </td>
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+    <th width="50%"><strong>Saved tab</strong></th>
+    <th width="50%"><strong>History tab</strong></th>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/screenshots/saved-tab.png" alt="Saved tab" />
+      <p>Run a saved workflow. Each one runs in its own browser session. You can open and watch them on their own.</p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/screenshots/history-tab.png" alt="History tab" />
+      <p>Results and screenshots of saved runs.</p>
+    </td>
   </tr>
 </table>
 
