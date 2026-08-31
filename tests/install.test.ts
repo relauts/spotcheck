@@ -123,15 +123,20 @@ describe("copyTemplateConfigs", () => {
     const service = JSON.parse(fs.readFileSync(path.join(cwd, SERVICE_CONFIG_NAME), "utf8")) as {
       port?: number;
       apiToken?: string;
+      installationId?: string;
     };
     const ui = JSON.parse(fs.readFileSync(path.join(cwd, UI_CONFIG_NAME), "utf8")) as {
       uiPort?: number;
       apiToken?: string;
+      installationId?: string;
     };
     assert.equal(service.port, 18732);
     assert.equal(ui.uiPort, 18733);
     assert.ok(service.apiToken && service.apiToken.length >= 16);
     assert.equal(service.apiToken, ui.apiToken);
+    assert.ok(service.installationId && service.installationId.length >= 16);
+    assert.notEqual(service.installationId, service.apiToken);
+    assert.equal(ui.installationId, undefined);
   });
 
   it("reuses an existing token when only one config is missing", async () => {
@@ -140,7 +145,27 @@ describe("copyTemplateConfigs", () => {
     fs.writeFileSync(layout.serviceConfig, JSON.stringify({ port: 18732, apiToken: "keep-me" }));
     await copyTemplateConfigs(layout);
     const ui = JSON.parse(fs.readFileSync(layout.uiConfig, "utf8")) as { apiToken?: string };
+    const service = JSON.parse(fs.readFileSync(layout.serviceConfig, "utf8")) as {
+      apiToken?: string;
+      installationId?: string;
+    };
     assert.equal(ui.apiToken, "keep-me");
+    assert.equal(service.apiToken, "keep-me");
+    assert.ok(service.installationId && service.installationId.length >= 16);
+  });
+
+  it("keeps an existing installationId", async () => {
+    const cwd = tmpDir();
+    const layout = layoutFor(cwd);
+    fs.writeFileSync(
+      layout.serviceConfig,
+      JSON.stringify({ port: 18732, apiToken: "keep-me", installationId: "already-set" }),
+    );
+    await copyTemplateConfigs(layout);
+    const service = JSON.parse(fs.readFileSync(layout.serviceConfig, "utf8")) as {
+      installationId?: string;
+    };
+    assert.equal(service.installationId, "already-set");
   });
 });
 

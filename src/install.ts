@@ -61,8 +61,12 @@ export async function readPackageJson(dir: string): Promise<PackageJsonFields | 
   }
 }
 
-export function createApiToken(): string {
+function createRandomId(): string {
   return randomBytes(24).toString("base64url");
+}
+
+export function createApiToken(): string {
+  return createRandomId();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -78,27 +82,59 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function readApiToken(filePath: string): Promise<string | undefined> {
+async function readNonEmptyString(filePath: string, key: string): Promise<string | undefined> {
   try {
     const parsed: unknown = JSON.parse(await fs.readFile(filePath, "utf8"));
-    if (!isRecord(parsed) || typeof parsed.apiToken !== "string") {
+    if (!isRecord(parsed) || typeof parsed[key] !== "string") {
       return undefined;
     }
-    const token = parsed.apiToken.trim();
-    return token ? token : undefined;
+    const value = parsed[key].trim();
+    return value ? value : undefined;
   } catch {
     return undefined;
   }
 }
 
-async function writeConfigWithToken(from: string, to: string, apiToken: string): Promise<void> {
+async function readApiToken(filePath: string): Promise<string | undefined> {
+  return readNonEmptyString(filePath, "apiToken");
+}
+
+async function writeJsonObject(filePath: string, parsed: Record<string, unknown>): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, `${JSON.stringify(parsed, null, 2)}\n`);
+}
+
+async function writeConfigWithToken(
+  from: string,
+  to: string,
+  apiToken: string,
+  installationId?: string,
+): Promise<void> {
   const parsed: unknown = JSON.parse(await fs.readFile(from, "utf8"));
   if (!isRecord(parsed)) {
     throw new Error(`Config template must be a JSON object: ${from}`);
   }
   parsed.apiToken = apiToken;
-  await fs.mkdir(path.dirname(to), { recursive: true });
-  await fs.writeFile(to, `${JSON.stringify(parsed, null, 2)}\n`);
+  if (installationId) {
+    parsed.installationId = installationId;
+  }
+  await writeJsonObject(to, parsed);
+}
+
+async function ensureInstallationId(filePath: string, installationId: string): Promise<void> {
+  try {
+    const parsed: unknown = JSON.parse(await fs.readFile(filePath, "utf8"));
+    if (!isRecord(parsed)) {
+      return;
+    }
+    if (typeof parsed.installationId === "string" && parsed.installationId.trim()) {
+      return;
+    }
+    parsed.installationId = installationId;
+    await writeJsonObject(filePath, parsed);
+  } catch {
+    return;
+  }
 }
 
 export async function copyConfigIfMissing(from: string, to: string): Promise<boolean> {
@@ -195,9 +231,13 @@ export async function copyTemplateConfigs(layout: InstallLayout, fromUrl = impor
     (await readApiToken(layout.serviceConfig)) ??
     (await readApiToken(layout.uiConfig)) ??
     createApiToken();
+  const installationId =
+    (await readNonEmptyString(layout.serviceConfig, "installationId")) ?? createRandomId();
 
   if (!(await fileExists(layout.serviceConfig))) {
-    await writeConfigWithToken(serviceTemplate, layout.serviceConfig, apiToken);
+    await writeConfigWithToken(serviceTemplate, layout.serviceConfig, apiToken, installationId);
+  } else {
+    await ensureInstallationId(layout.serviceConfig, installationId);
   }
 
   if (!(await fileExists(layout.uiConfig))) {
