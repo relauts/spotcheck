@@ -1,0 +1,10 @@
+{
+  "uiPort": 18733,
+  "apiBaseUrl": "http://127.0.0.1:18732",
+  "apiToken": "your-api-token",
+  "savedDir": "../relauts-spotcheck-processed/saved",
+  "processedDir": "../relauts-spotcheck-processed/screenshot",
+  "historyScreenshotDir": "../relauts-spotcheck-processed/screenshot/saved-runs",
+  "savedRunPollMs": 1000,
+  "savedRunningPollSeconds": 2
+}

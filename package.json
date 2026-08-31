@@ -1,0 +1,49 @@
+{
+  "name": "@relauts/spotcheck",
+  "version": "1.0.0",
+  "description": "Spotcheck launcher — installs UI and service into the current folder and starts them",
+  "license": "AGPL-3.0-or-later",
+  "author": "Relauts Pvt. Ltd.",
+  "type": "module",
+  "private": true,
+  "homepage": "https://github.com/relauts/spotcheck#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/relauts/spotcheck.git"
+  },
+  "bugs": {
+    "url": "https://github.com/relauts/spotcheck/issues"
+  },
+  "keywords": [
+    "ai",
+    "browser-automation",
+    "computer-use",
+    "playwright",
+    "testing"
+  ],
+  "files": [
+    "files",
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "bin": {
+    "spotcheck": "dist/cli.js"
+  },
+  "main": "dist/cli.js",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "npm run build && node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
+  }
+}

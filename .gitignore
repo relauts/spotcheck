@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+/relauts-spotcheck-service/
+/relauts-spotcheck-ui/
+/relauts-spotcheck-service-config.json
+/relauts-spotcheck-ui-config.json
+/relauts-spotcheck-processed/
+/trial/**

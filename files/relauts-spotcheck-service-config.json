@@ -1,0 +1,22 @@
+{
+  "targetUrl": "https://example.com",
+  "navigationTimeoutMs": 30000,
+  "headless": true,
+  "chromiumSandbox": true,
+  "viewportWidth": 1024,
+  "viewportHeight": 768,
+  "port": 18732,
+  "apiToken": "",
+  "corsOrigins": ["http://127.0.0.1:18733"],
+  "savedDir": "../relauts-spotcheck-processed/saved",
+  "processedDir": "../relauts-spotcheck-processed/screenshot",
+  "historyDir": "../relauts-spotcheck-processed/history",
+  "geminiApiKey": "",
+  "geminiModel": "gemini-3.6-flash",
+  "geminiThinkingLevel": "minimal",
+  "agentMaxTurns": 15,
+  "seed": 42,
+  "geminiDisabledSafetyPolicies": "",
+  "installationId":"",
+  "telemetryUrl":"https://spotcheck-telemetry-465330532921.us-central1.run.app/v1/automation"
+}
