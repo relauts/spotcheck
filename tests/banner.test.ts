@@ -51,4 +51,10 @@ describe("banner", () => {
     assert.match(out, /Downloading required packages/);
     assert.match(out, /\n\n/);
   });
+
+  it("formats the registering installation step", () => {
+    const done = formatStatusLine("Registering installation...", true, "⠋", false);
+    assert.match(done, /✓/);
+    assert.match(done, /Registering installation/);
+  });
 });

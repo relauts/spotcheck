@@ -20,6 +20,7 @@ const TITLE = [
 ].join("\n");
 
 export const STORY_DOWNLOADING = "Downloading required packages...";
+export const STORY_REGISTERING = "Registering installation...";
 export const STORY_COMPLETE = "Installation complete.";
 export const STORY_GET_STARTED = "Click below link to get started.";
 

@@ -9,10 +9,12 @@ import { extractNpmTarball } from "../src/extract.js";
 import {
   copyConfigIfMissing,
   copyTemplateConfigs,
+  installUrlFromTelemetry,
   isUuid,
   npmFileArgs,
   packageNeedsInstall,
   readPackageJson,
+  registerInstallationId,
 } from "../src/install.js";
 import {
   layoutFor,
@@ -135,8 +137,7 @@ describe("copyTemplateConfigs", () => {
     assert.equal(ui.uiPort, 18733);
     assert.ok(service.apiToken && service.apiToken.length >= 16);
     assert.equal(service.apiToken, ui.apiToken);
-    assert.ok(service.installationId && isUuid(service.installationId));
-    assert.notEqual(service.installationId, service.apiToken);
+    assert.equal(service.installationId, "");
     assert.equal(ui.installationId, undefined);
   });
 
@@ -152,7 +153,7 @@ describe("copyTemplateConfigs", () => {
     };
     assert.equal(ui.apiToken, "keep-me");
     assert.equal(service.apiToken, "keep-me");
-    assert.ok(service.installationId && isUuid(service.installationId));
+    assert.equal(service.installationId, undefined);
   });
 
   it("keeps an existing UUID installationId", async () => {
@@ -169,20 +170,76 @@ describe("copyTemplateConfigs", () => {
     };
     assert.equal(service.installationId, existingId);
   });
+});
 
-  it("replaces a non-UUID installationId with a UUID", async () => {
+describe("installUrlFromTelemetry", () => {
+  it("maps the automation URL to the install endpoint", () => {
+    assert.equal(
+      installUrlFromTelemetry("https://spotcheck-telemetry.example/v1/automation"),
+      "https://spotcheck-telemetry.example/v1/install",
+    );
+  });
+});
+
+describe("registerInstallationId", () => {
+  const uuid = "550e8400-e29b-41d4-a716-446655440000";
+
+  it("writes the uuid from POST /v1/install", async () => {
+    const cwd = tmpDir();
+    const layout = layoutFor(cwd);
+    await copyTemplateConfigs(layout);
+    let called = 0;
+    const wrote = await registerInstallationId(layout.serviceConfig, async (url, init) => {
+      called += 1;
+      assert.equal(String(url), "https://spotcheck-telemetry-465330532921.us-central1.run.app/v1/install");
+      assert.equal(init?.method, "POST");
+      return new Response(JSON.stringify({ uuid }), { status: 201 });
+    });
+    const service = JSON.parse(fs.readFileSync(layout.serviceConfig, "utf8")) as {
+      installationId?: string;
+    };
+    assert.equal(wrote, true);
+    assert.equal(called, 1);
+    assert.equal(service.installationId, uuid);
+    assert.ok(isUuid(service.installationId));
+  });
+
+  it("does not call install when a UUID is already set", async () => {
     const cwd = tmpDir();
     const layout = layoutFor(cwd);
     fs.writeFileSync(
       layout.serviceConfig,
-      JSON.stringify({ port: 18732, apiToken: "keep-me", installationId: "already-set" }),
+      JSON.stringify({
+        telemetryUrl: "https://spotcheck-telemetry.example/v1/automation",
+        installationId: uuid,
+      }),
     );
-    await copyTemplateConfigs(layout);
+    let called = 0;
+    const wrote = await registerInstallationId(layout.serviceConfig, async () => {
+      called += 1;
+      return new Response(JSON.stringify({ uuid }), { status: 201 });
+    });
+    assert.equal(wrote, false);
+    assert.equal(called, 0);
+  });
+
+  it("replaces a non-UUID installationId with the server uuid", async () => {
+    const cwd = tmpDir();
+    const layout = layoutFor(cwd);
+    fs.writeFileSync(
+      layout.serviceConfig,
+      JSON.stringify({
+        telemetryUrl: "https://spotcheck-telemetry.example/v1/automation",
+        installationId: "already-set",
+      }),
+    );
+    await registerInstallationId(layout.serviceConfig, async () => {
+      return new Response(JSON.stringify({ uuid }), { status: 201 });
+    });
     const service = JSON.parse(fs.readFileSync(layout.serviceConfig, "utf8")) as {
       installationId?: string;
     };
-    assert.ok(service.installationId && isUuid(service.installationId));
-    assert.notEqual(service.installationId, "already-set");
+    assert.equal(service.installationId, uuid);
   });
 });
 

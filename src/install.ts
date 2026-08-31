@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -71,8 +71,19 @@ export function createApiToken(): string {
   return randomBytes(24).toString("base64url");
 }
 
-export function createInstallationId(): string {
-  return randomUUID();
+export function installUrlFromTelemetry(telemetryUrl: string): string {
+  const url = new URL(telemetryUrl.trim());
+  const pathname = url.pathname.replace(/\/+$/, "");
+  if (pathname.endsWith("/v1/automation")) {
+    url.pathname = `${pathname.slice(0, -"/v1/automation".length)}/v1/install`;
+  } else if (pathname.endsWith("/v1/install")) {
+    url.pathname = pathname;
+  } else {
+    url.pathname = "/v1/install";
+  }
+  url.search = "";
+  url.hash = "";
+  return url.href;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -133,19 +144,43 @@ async function readInstallationId(filePath: string): Promise<string | undefined>
 }
 
 async function ensureInstallationId(filePath: string, installationId: string): Promise<void> {
-  try {
-    const parsed: unknown = JSON.parse(await fs.readFile(filePath, "utf8"));
-    if (!isRecord(parsed)) {
-      return;
-    }
-    if (typeof parsed.installationId === "string" && isUuid(parsed.installationId.trim())) {
-      return;
-    }
-    parsed.installationId = installationId;
-    await writeJsonObject(filePath, parsed);
-  } catch {
-    return;
+  const parsed: unknown = JSON.parse(await fs.readFile(filePath, "utf8"));
+  if (!isRecord(parsed)) {
+    throw new Error(`Config file must be a JSON object: ${filePath}`);
   }
+  parsed.installationId = installationId;
+  await writeJsonObject(filePath, parsed);
+}
+
+async function fetchInstallationUuid(installUrl: string, fetchImpl: typeof fetch): Promise<string> {
+  const response = await fetchImpl(installUrl, {
+    method: "POST",
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status !== 201) {
+    throw new Error(`install endpoint returned HTTP ${response.status}`);
+  }
+  const parsed: unknown = await response.json();
+  if (!isRecord(parsed) || typeof parsed.uuid !== "string" || !isUuid(parsed.uuid.trim())) {
+    throw new Error("install endpoint returned no uuid");
+  }
+  return parsed.uuid.trim();
+}
+
+export async function registerInstallationId(
+  configPath: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  if (await readInstallationId(configPath)) {
+    return false;
+  }
+  const telemetryUrl = await readNonEmptyString(configPath, "telemetryUrl");
+  if (!telemetryUrl) {
+    throw new Error("telemetryUrl is missing");
+  }
+  const uuid = await fetchInstallationUuid(installUrlFromTelemetry(telemetryUrl), fetchImpl);
+  await ensureInstallationId(configPath, uuid);
+  return true;
 }
 
 export async function copyConfigIfMissing(from: string, to: string): Promise<boolean> {
@@ -242,12 +277,9 @@ export async function copyTemplateConfigs(layout: InstallLayout, fromUrl = impor
     (await readApiToken(layout.serviceConfig)) ??
     (await readApiToken(layout.uiConfig)) ??
     createApiToken();
-  const installationId = (await readInstallationId(layout.serviceConfig)) ?? createInstallationId();
 
   if (!(await fileExists(layout.serviceConfig))) {
-    await writeConfigWithToken(serviceTemplate, layout.serviceConfig, apiToken, installationId);
-  } else {
-    await ensureInstallationId(layout.serviceConfig, installationId);
+    await writeConfigWithToken(serviceTemplate, layout.serviceConfig, apiToken);
   }
 
   if (!(await fileExists(layout.uiConfig))) {
