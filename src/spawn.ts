@@ -69,14 +69,11 @@ export async function stopChild(child: ChildProcess | undefined): Promise<void> 
   });
 }
 
-export async function startStack(
+export async function startService(
   layout: InstallLayout,
   servicePort: number,
-  uiPort: number,
-): Promise<SpawnedStack> {
+): Promise<{ service: ChildProcess; serviceUrl: string }> {
   const serviceEntry = path.join(layout.serviceDir, "dist", "api", "server.js");
-  const uiEntry = path.join(layout.uiDir, "dist", "server.js");
-
   const service = startNodeEntry(serviceEntry, layout.cwd);
   const serviceUrl = `http://127.0.0.1:${servicePort}`;
   try {
@@ -85,18 +82,38 @@ export async function startStack(
     await stopChild(service);
     throw error;
   }
+  return { service, serviceUrl };
+}
 
+export async function startUi(
+  layout: InstallLayout,
+  uiPort: number,
+): Promise<{ ui: ChildProcess; uiUrl: string }> {
+  const uiEntry = path.join(layout.uiDir, "dist", "server.js");
   const ui = startNodeEntry(uiEntry, layout.cwd);
   const uiUrl = `http://127.0.0.1:${uiPort}`;
   try {
     await waitForHttp(uiUrl);
   } catch (error: unknown) {
     await stopChild(ui);
+    throw error;
+  }
+  return { ui, uiUrl };
+}
+
+export async function startStack(
+  layout: InstallLayout,
+  servicePort: number,
+  uiPort: number,
+): Promise<SpawnedStack> {
+  const { service, serviceUrl } = await startService(layout, servicePort);
+  try {
+    const { ui, uiUrl } = await startUi(layout, uiPort);
+    return { layout, service, ui, serviceUrl, uiUrl };
+  } catch (error: unknown) {
     await stopChild(service);
     throw error;
   }
-
-  return { layout, service, ui, serviceUrl, uiUrl };
 }
 
 export async function stopStack(stack: SpawnedStack | undefined): Promise<void> {

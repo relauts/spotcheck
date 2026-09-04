@@ -19,10 +19,19 @@ const TITLE = [
   "╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚══════╝",
 ].join("\n");
 
-export const STORY_DOWNLOADING = "Downloading required packages...";
+export const STORY_PREPARING_CONFIG = "Preparing config...";
+export const STORY_DOWNLOADING_SERVICE = "Downloading service...";
+export const STORY_INSTALLING_SERVICE = "Installing service...";
+export const STORY_INSTALLING_CHROMIUM = "Installing Chromium...";
+export const STORY_SERVICE_UP_TO_DATE = "Service already up to date.";
+export const STORY_DOWNLOADING_UI = "Downloading UI...";
+export const STORY_INSTALLING_UI = "Installing UI...";
+export const STORY_UI_UP_TO_DATE = "UI already up to date.";
 export const STORY_REGISTERING = "Registering installation...";
-export const STORY_COMPLETE = "Installation complete.";
-export const STORY_GET_STARTED = "Click below link to get started.";
+export const STORY_ALREADY_REGISTERED = "Installation already registered.";
+export const STORY_STARTING_SERVICE = "Starting service...";
+export const STORY_STARTING_UI = "Starting UI...";
+export const STORY_GET_STARTED = "Open below link in your browser to get started.";
 
 export interface StatusStream {
   readonly isTTY?: boolean;
@@ -75,20 +84,21 @@ export async function runStatusStep<T>(
   label: string,
   work: () => Promise<T>,
   stream: StatusStream = process.stdout,
+  doneLabel?: (result: T) => string,
 ): Promise<T> {
   const color = useColor(stream);
-  const doneLine = `${formatStatusLine(label, true, FRAMES[0], color)}\n\n`;
+  const finishLine = (text: string): string => `${formatStatusLine(text, true, FRAMES[0], color)}\n`;
 
   if (stream.isTTY !== true) {
     const result = await work();
-    stream.write(doneLine);
+    stream.write(finishLine(doneLabel?.(result) ?? label));
     return result;
   }
 
   let index = 0;
-  const render = (done: boolean): void => {
+  const render = (done: boolean, text = label): void => {
     const frame = FRAMES[index] ?? FRAMES[0];
-    stream.write(`${CLEAR_LINE}${formatStatusLine(label, done, frame, color)}`);
+    stream.write(`${CLEAR_LINE}${formatStatusLine(text, done, frame, color)}`);
   };
 
   stream.write(HIDE_CURSOR);
@@ -101,11 +111,11 @@ export async function runStatusStep<T>(
   try {
     const result = await work();
     clearInterval(timer);
-    stream.write(`${CLEAR_LINE}${doneLine}`);
+    stream.write(`${CLEAR_LINE}${finishLine(doneLabel?.(result) ?? label)}`);
     return result;
   } catch (error: unknown) {
     clearInterval(timer);
-    stream.write(`${CLEAR_LINE}${formatStatusLine(label, false, FRAMES[0], color)}\n\n`);
+    stream.write(`${CLEAR_LINE}${formatStatusLine(label, false, FRAMES[0], color)}\n`);
     throw error;
   } finally {
     stream.write(SHOW_CURSOR);

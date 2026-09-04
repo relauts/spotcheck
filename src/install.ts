@@ -213,41 +213,7 @@ async function npmPack(spec: string, destDir: string): Promise<string> {
   return path.join(destDir, path.basename(fileName));
 }
 
-async function npmInstall(dir: string): Promise<void> {
-  const npm = npmFileArgs(["install", "--omit=dev"]);
-  await runQuiet(npm.command, npm.args, dir);
-}
-
-async function installPlaywrightChromium(serviceDir: string): Promise<void> {
-  const cli = path.join(serviceDir, "node_modules", "playwright", "cli.js");
-  try {
-    await fs.access(cli);
-  } catch {
-    return;
-  }
-  await runQuiet(process.execPath, [cli, "install", "chromium"], serviceDir);
-}
-
-async function installNpmPackage(spec: string, dest: string, withPlaywright: boolean): Promise<void> {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "spotcheck-pack-"));
-  try {
-    await fs.rm(dest, { recursive: true, force: true });
-    await fs.mkdir(dest, { recursive: true });
-    const tgz = await npmPack(spec, tmp);
-    extractNpmTarball(tgz, dest);
-    await npmInstall(dest);
-    if (withPlaywright) {
-      await installPlaywrightChromium(dest);
-    }
-  } catch (error: unknown) {
-    await fs.rm(dest, { recursive: true, force: true });
-    throw error;
-  } finally {
-    await fs.rm(tmp, { recursive: true, force: true });
-  }
-}
-
-async function npmLatestVersion(name: string): Promise<string> {
+export async function npmLatestVersion(name: string): Promise<string> {
   const npm = npmFileArgs(["view", name, "version"]);
   const { stdout } = await execFileAsync(npm.command, npm.args, {
     encoding: "utf8",
@@ -259,6 +225,40 @@ async function npmLatestVersion(name: string): Promise<string> {
   return version;
 }
 
+export async function downloadNpmPackage(spec: string, dest: string): Promise<void> {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "spotcheck-pack-"));
+  try {
+    await fs.rm(dest, { recursive: true, force: true });
+    await fs.mkdir(dest, { recursive: true });
+    const tgz = await npmPack(spec, tmp);
+    extractNpmTarball(tgz, dest);
+  } catch (error: unknown) {
+    await fs.rm(dest, { recursive: true, force: true });
+    throw error;
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+}
+
+export async function installNpmDependencies(dir: string): Promise<void> {
+  const npm = npmFileArgs(["install", "--omit=dev"]);
+  await runQuiet(npm.command, npm.args, dir);
+}
+
+export async function installPlaywrightChromium(serviceDir: string): Promise<void> {
+  const cli = path.join(serviceDir, "node_modules", "playwright", "cli.js");
+  try {
+    await fs.access(cli);
+  } catch {
+    return;
+  }
+  await runQuiet(process.execPath, [cli, "install", "chromium"], serviceDir);
+}
+
+export async function removePackageDir(dest: string): Promise<void> {
+  await fs.rm(dest, { recursive: true, force: true });
+}
+
 async function ensurePackage(dest: string, name: string, withPlaywright: boolean): Promise<void> {
   const latest = await npmLatestVersion(name);
   const current = await readPackageJson(dest);
@@ -266,7 +266,16 @@ async function ensurePackage(dest: string, name: string, withPlaywright: boolean
     return;
   }
 
-  await installNpmPackage(`${name}@${latest}`, dest, withPlaywright);
+  try {
+    await downloadNpmPackage(`${name}@${latest}`, dest);
+    await installNpmDependencies(dest);
+    if (withPlaywright) {
+      await installPlaywrightChromium(dest);
+    }
+  } catch (error: unknown) {
+    await removePackageDir(dest);
+    throw error;
+  }
 }
 
 export async function copyTemplateConfigs(layout: InstallLayout, fromUrl = import.meta.url): Promise<void> {

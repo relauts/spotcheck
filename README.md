@@ -35,6 +35,32 @@ Spotcheck lets people with no coding skills build and run Playwright browser tes
 
 ## Quick start
 
+### One-liner (recommended)
+
+Installs Node if needed, sets up `~/spotcheck`, and starts the app.
+
+**macOS / Linux**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/relauts/spotcheck/main/scripts/install.sh | bash
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://raw.githubusercontent.com/relauts/spotcheck/main/scripts/install.ps1 | iex
+```
+
+Open `http://127.0.0.1:18733`. Paste your Gemini API key when the UI asks.
+
+Later, just type:
+
+```bash
+spotcheck
+```
+
+### Already have Node.js?
+
 Needs Node.js `>=18.18.0`.
 
 ```bash
@@ -43,9 +69,7 @@ cd my-spotcheck
 npx @relauts/spotcheck
 ```
 
-Open `http://127.0.0.1:18733`. Paste your Gemini API key when the UI asks.
-
-This command downloads the UI and service, copies config, and starts both.
+This downloads the UI and service, copies config, and starts both.
 
 ## License
 
