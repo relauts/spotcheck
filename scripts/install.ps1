@@ -33,10 +33,14 @@ function Test-NodeVersionOk {
 }
 
 function Get-NodePlatform {
-  $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
-  switch ($arch) {
-    "x64" { return "win-x64" }
-    "arm64" { return "win-arm64" }
+  # Do not use RuntimeInformation.OSArchitecture. Windows PowerShell 5.1 +
+  # PSReadLine can bind a stub type with no OSArchitecture, then .ToString()
+  # throws "You cannot call a method on a null-valued expression."
+  $arch = $env:PROCESSOR_ARCHITEW6432
+  if (-not $arch) { $arch = $env:PROCESSOR_ARCHITECTURE }
+  switch -Regex ($arch) {
+    'ARM64' { return 'win-arm64' }
+    'AMD64' { return 'win-x64' }
     default { throw "Unsupported CPU: $arch" }
   }
 }
